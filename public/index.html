@@ -1,118 +1,49 @@
 <!DOCTYPE html>
 <html>
 <head>
-  <meta charset="UTF-8">
-  <title>Radio Enlace</title>
+  <title>Radio en Vivo</title>
 </head>
+<body style="background:black;color:white;text-align:center;font-family:sans-serif">
 
-<body style="text-align:center; font-family:sans-serif;">
+<h1>🎙️ RADIO EN VIVO</h1>
 
-<h2>🎙 Radio Enlace</h2>
+<input type="password" id="clave" placeholder="Clave">
+<br><br>
 
-<input type="password" id="pass" placeholder="Clave"><br><br>
+<button onclick="transmitir()">TRANSMITIR</button>
+<button onclick="escuchar()">ESCUCHAR</button>
 
-<button onclick="start()" style="font-size:20px;">
-🚀 INICIAR TRANSMISIÓN
-</button>
-
-<p id="status">Esperando...</p>
-
-<script src="/socket.io/socket.io.js"></script>
+<audio id="audio" controls autoplay></audio>
 
 <script>
-const socket = io();
-let pc;
-let isSender = false;
+let socket;
 let stream;
 
-function log(msg){
-  document.getElementById("status").innerText = msg;
-}
+function transmitir() {
+  navigator.mediaDevices.getUserMedia({ audio: true })
+    .then(s => {
+      stream = s;
+      socket = new WebSocket(location.origin.replace('http','ws'));
 
-function createConnection(){
-  pc = new RTCPeerConnection({
-    iceServers: [{ urls: "stun:stun.l.google.com:19302" }]
-  });
-
-  pc.onicecandidate = e => {
-    if(e.candidate){
-      socket.emit("candidate", e.candidate);
-    }
-  };
-
-  pc.ontrack = (event) => {
-    const audio = document.createElement("audio");
-    audio.srcObject = event.streams[0];
-    audio.autoplay = true;
-  };
-}
-
-async function start(){
-  const pass = document.getElementById("pass").value;
-  socket.emit("auth", pass);
-}
-
-socket.on("auth_ok", async () => {
-  log("Conectado...");
-
-  createConnection();
-
-  try{
-    stream = await navigator.mediaDevices.getUserMedia({
-      audio: {
-        echoCancellation: false,
-        noiseSuppression: false,
-        autoGainControl: false
-      }
+      socket.onopen = () => {
+        const mediaRecorder = new MediaRecorder(stream);
+        mediaRecorder.ondataavailable = e => {
+          socket.send(e.data);
+        };
+        mediaRecorder.start(100);
+      };
     });
+}
 
-    isSender = true;
+function escuchar() {
+  socket = new WebSocket(location.origin.replace('http','ws'));
 
-    stream.getTracks().forEach(t => pc.addTrack(t, stream));
-
-    const offer = await pc.createOffer();
-    await pc.setLocalDescription(offer);
-    socket.emit("offer", offer);
-
-    log("Transmitiendo 🔴");
-
-  }catch(e){
-    log("Error micrófono");
-  }
-});
-
-socket.on("offer", async (offer) => {
-  if(isSender) return;
-
-  createConnection();
-
-  await pc.setRemoteDescription(offer);
-  const answer = await pc.createAnswer();
-  await pc.setLocalDescription(answer);
-  socket.emit("answer", answer);
-
-  log("Recibiendo audio 🎧");
-});
-
-socket.on("answer", async (answer) => {
-  await pc.setRemoteDescription(answer);
-});
-
-socket.on("candidate", async (c) => {
-  try{
-    await pc.addIceCandidate(c);
-  }catch{}
-});
-
-
-// 🔁 RECONEXIÓN AUTOMÁTICA
-setInterval(()=>{
-  if(pc && pc.connectionState === "disconnected"){
-    log("Reconectando...");
-    location.reload();
-  }
-},3000);
-
+  socket.onmessage = e => {
+    const audio = document.getElementById("audio");
+    const blob = new Blob([e.data], { type: 'audio/webm' });
+    audio.src = URL.createObjectURL(blob);
+  };
+}
 </script>
 
 </body>
