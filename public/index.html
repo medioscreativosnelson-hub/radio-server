@@ -10,11 +10,18 @@
 
 <button onclick="start()">🎙️ Transmitir</button>
 
-<audio id="player" controls autoplay></audio>
+<br><br>
+
+<audio id="player" controls autoplay playsinline>
+  <source src="/stream" type="audio/mpeg">
+</audio>
+
+<p>👉 Toca la pantalla si no suena</p>
 
 <script>
 let mediaRecorder;
 
+// TRANSMITIR
 async function start() {
   const stream = await navigator.mediaDevices.getUserMedia({ audio: true });
   mediaRecorder = new MediaRecorder(stream);
@@ -29,8 +36,8 @@ async function start() {
   mediaRecorder.start(500);
 }
 
+// ESCUCHAR
 const audio = document.getElementById("player");
-audio.src = "/stream";
 
 document.body.addEventListener("click", () => {
   audio.play();
