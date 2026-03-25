@@ -5,6 +5,7 @@ app.use(express.static("public"));
 
 let clients = [];
 
+// Ruta para escuchar
 app.get("/stream", (req, res) => {
   res.writeHead(200, {
     "Content-Type": "audio/mpeg",
@@ -19,6 +20,7 @@ app.get("/stream", (req, res) => {
   });
 });
 
+// Ruta para recibir audio
 app.post("/audio", (req, res) => {
   req.on("data", chunk => {
     clients.forEach(client => client.write(chunk));
