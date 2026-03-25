@@ -4,20 +4,34 @@
   <meta charset="UTF-8">
   <title>Radio en Vivo</title>
 </head>
-<body style="background:black; color:white; text-align:center;">
+<body style="background:black;color:white;text-align:center">
 
 <h1>🔴 RADIO EN VIVO</h1>
 
-<audio id="player" controls autoplay playsinline>
-  <source src="/stream" type="audio/mpeg">
-</audio>
+<button onclick="start()">🎙️ Transmitir</button>
 
-<p>Toca la pantalla si no suena</p>
+<audio id="player" controls autoplay></audio>
 
 <script>
-const audio = document.getElementById("player");
+let mediaRecorder;
 
-// Forzar reproducción en móviles
+async function start() {
+  const stream = await navigator.mediaDevices.getUserMedia({ audio: true });
+  mediaRecorder = new MediaRecorder(stream);
+
+  mediaRecorder.ondataavailable = e => {
+    fetch("/audio", {
+      method: "POST",
+      body: e.data
+    });
+  };
+
+  mediaRecorder.start(500);
+}
+
+const audio = document.getElementById("player");
+audio.src = "/stream";
+
 document.body.addEventListener("click", () => {
   audio.play();
 });
