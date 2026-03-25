@@ -2,11 +2,11 @@
 <html lang="es">
 <head>
   <meta charset="UTF-8">
-  <title>Radio en Vivo</title>
+  <title>Radio en Vivo PRO</title>
 </head>
 <body style="background:black;color:white;text-align:center">
 
-<h1>🔴 RADIO EN VIVO</h1>
+<h1>⚡ RADIO SIN DELAY</h1>
 
 <h2 id="estado">Modo: Ninguno</h2>
 
@@ -15,42 +15,41 @@
 
 <br><br>
 
-<audio id="player" controls playsinline></audio>
+<audio id="audio" autoplay controls></audio>
 
 <script>
-let mediaRecorder;
-const audio = document.getElementById("player");
-const estado = document.getElementById("estado");
+let pc = new RTCPeerConnection();
+let audio = document.getElementById("audio");
+let estado = document.getElementById("estado");
 
 // TRANSMITIR
 async function startTransmit() {
-  estado.innerText = "Modo: Transmitiendo 🎙️";
+  estado.innerText = "Transmitiendo 🎙️";
 
   const stream = await navigator.mediaDevices.getUserMedia({ audio: true });
-  mediaRecorder = new MediaRecorder(stream);
+  stream.getTracks().forEach(track => pc.addTrack(track, stream));
 
-  mediaRecorder.ondataavailable = e => {
-    fetch("/audio", {
-      method: "POST",
-      body: e.data
-    });
-  };
+  const offer = await pc.createOffer();
+  await pc.setLocalDescription(offer);
 
-  mediaRecorder.start(200); // 🔥 MENOS DELAY
+  localStorage.setItem("offer", JSON.stringify(offer));
+  alert("📱 Ahora abre en el otro celular y dale ESCUCHAR");
 }
 
 // ESCUCHAR
-function startListen() {
-  estado.innerText = "Modo: Escuchando 🎧";
+async function startListen() {
+  estado.innerText = "Escuchando 🎧";
 
-  audio.src = "/stream";
-  audio.play();
+  const offer = JSON.parse(localStorage.getItem("offer"));
+  await pc.setRemoteDescription(offer);
+
+  const answer = await pc.createAnswer();
+  await pc.setLocalDescription(answer);
+
+  pc.ontrack = event => {
+    audio.srcObject = event.streams[0];
+  };
 }
-
-// Permitir autoplay en móvil
-document.body.addEventListener("click", () => {
-  audio.play();
-});
 </script>
 
 </body>
