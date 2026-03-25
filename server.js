@@ -1,21 +1,31 @@
 const express = require("express");
-const http = require("http");
-const { Server } = require("socket.io");
-
 const app = express();
-const server = http.createServer(app);
-const io = new Server(server);
 
 app.use(express.static("public"));
 
-io.on("connection", (socket) => {
+let clients = [];
 
-  socket.on("offer", (data) => socket.broadcast.emit("offer", data));
-  socket.on("answer", (data) => socket.broadcast.emit("answer", data));
-  socket.on("candidate", (data) => socket.broadcast.emit("candidate", data));
+app.get("/stream", (req, res) => {
+  res.writeHead(200, {
+    "Content-Type": "audio/mpeg",
+    "Connection": "keep-alive",
+    "Cache-Control": "no-cache"
+  });
 
+  clients.push(res);
+
+  req.on("close", () => {
+    clients = clients.filter(c => c !== res);
+  });
 });
 
-server.listen(process.env.PORT || 3000, () => {
-  console.log("Servidor activo 🔴");
+app.post("/audio", (req, res) => {
+  req.on("data", chunk => {
+    clients.forEach(client => client.write(chunk));
+  });
+
+  req.on("end", () => res.end());
 });
+
+const PORT = process.env.PORT || 3000;
+app.listen(PORT, () => console.log("Servidor corriendo"));
