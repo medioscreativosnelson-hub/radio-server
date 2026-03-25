@@ -8,21 +8,24 @@
 
 <h1>🔴 RADIO EN VIVO</h1>
 
-<button onclick="start()">🎙️ Transmitir</button>
+<h2 id="estado">Modo: Ninguno</h2>
+
+<button onclick="startTransmit()">🎙️ Transmitir</button>
+<button onclick="startListen()">🎧 Escuchar</button>
 
 <br><br>
 
-<audio id="player" controls autoplay playsinline>
-  <source src="/stream" type="audio/mpeg">
-</audio>
-
-<p>👉 Toca la pantalla si no suena</p>
+<audio id="player" controls playsinline></audio>
 
 <script>
 let mediaRecorder;
+const audio = document.getElementById("player");
+const estado = document.getElementById("estado");
 
 // TRANSMITIR
-async function start() {
+async function startTransmit() {
+  estado.innerText = "Modo: Transmitiendo 🎙️";
+
   const stream = await navigator.mediaDevices.getUserMedia({ audio: true });
   mediaRecorder = new MediaRecorder(stream);
 
@@ -33,12 +36,18 @@ async function start() {
     });
   };
 
-  mediaRecorder.start(500);
+  mediaRecorder.start(200); // 🔥 MENOS DELAY
 }
 
 // ESCUCHAR
-const audio = document.getElementById("player");
+function startListen() {
+  estado.innerText = "Modo: Escuchando 🎧";
 
+  audio.src = "/stream";
+  audio.play();
+}
+
+// Permitir autoplay en móvil
 document.body.addEventListener("click", () => {
   audio.play();
 });
